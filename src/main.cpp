@@ -1,20 +1,52 @@
 // 1. INCLUSÃO DE BIBLIOTECAS
-#include <WIFI.h>         // Biblioteca para gerenciar o wi-fi do ESP32
+#include <WiFi.h>         // Biblioteca para gerenciar o wi-fi do ESP32
 #include <PubSubClient.h> // Biblioteca para o protocolo MQTT
 
 // 2. CONFIGURAÇÃO DE REDE E SERVIDOR
 const char *ssid = "SENAI-DEV2";          // Nome da rede Wi-Fi
 const char *password = "desenvolvimento"; // Senha da rede Wi-Fi
 
-// Endereço IP do computador do professor (Broker) - será passado na hora
-const char *mqtt_server = "192.168.0.100";
+// Endereço IP do computador do professor (Broker)
+const char *mqtt_server = "192.168.0.103";
 const int mqtt_port = 1883; // Porta padrão de MQTT
+
+// Variáveis para controlar o tempo de envio sem usar delay()
+unsigned long anteriorMillis = 0;
+const long intervalo = 15000; // Tempo em milissegundos (15 segundos)
 
 // 3. CRIAÇÃO DE OBJETOS
 WiFiClient espClient;           // Objeto que gerencia a conexão TCP
 PubSubClient client(espClient); // Objeto MQTT que usa o espClient para se comunicar
 
-// ---FUNÇÃO: CONECTAR AO WI-FI ---
+// --- PARTE A: A FUNÇÃO QUE DECIDE O QUE FAZER (CALLBACK) ---
+void callback(char *topic, byte *payload, unsigned int length)
+{
+  Serial.print("Mensagem chegou no tópico: ");
+  Serial.println(topic);
+
+  String mensagem;
+  for (int i = 0; i < length; i++)
+  {
+    mensagem += (char)payload[i]; // Constrói a string a partir dos bytes
+  }
+
+  Serial.print("Conteúdo da mensagem: ");
+  Serial.println(mensagem);
+
+  // Lógica para ligar/desligar o LED no pino D4
+  if (mensagem == "LIGAR")
+  {
+    digitalWrite(4, HIGH); // Liga o LED no pino D4
+    Serial.println("LED LIGADO!");
+  }
+  else if (mensagem == "DESLIGAR")
+  {
+    digitalWrite(4, LOW); // Desliga o LED no pino D4
+    Serial.println("LED DESLIGADO!");
+  }
+}
+
+// --- FUNÇÃO: CONECTAR AO WI-FI ---
 void setup_wifi()
 {
   delay(10);
@@ -49,6 +81,10 @@ void reconnect()
     if (client.connect(clientId.c_str()))
     {
       Serial.println("CONECTADO AO SERVIDOR!");
+
+      // --- PARTE C: ASSINAR O CANAL (SUBSCRIBE) ---
+      client.subscribe("sala/comando");
+      Serial.println("Inscrito no tópico 'sala/comando' com sucesso!");
     }
     else
     {
@@ -63,9 +99,17 @@ void reconnect()
 // --- CONFIGURAÇÃO INICIAL (RODA UMA VEZ) ---
 void setup()
 {
-  Serial.begin(115200);                     // Inicia a comunicação serial para vermos as mensagens
+  Serial.begin(115200); // Inicia a comunicação serial
+
+  // Configura o pino 4 (D4) do LED como saída
+  pinMode(4, OUTPUT);
+  digitalWrite(4, LOW); // Garante que o LED comece apagado
+
   setup_wifi();                             // Chama a função de Wi-Fi
   client.setServer(mqtt_server, mqtt_port); // Configura o endereço do servidor MQTT
+
+  // --- PARTE B: ONDE LIGAR A ESCUTA (SET CALLBACK) ---
+  client.setCallback(callback);
 }
 
 // --- LOOP PRINCIPAL (RODA SEM PARAR) ---
@@ -76,18 +120,22 @@ void loop()
   {
     reconnect();
   }
-  client.loop(); // Mantém a comunicação ativa com o servidor
+  client.loop(); // Mantém a comunicação ativa e escuta os comandos em tempo real
 
-  // --- LÓGICA DE ENVIO DE MENSAGEM ---
-  Serial.println("Enviando teste de conexão...");
+  // --- LÓGICA DE ENVIO SEM TRAVAR O ESP32 (Utilizando Millis) ---
+  unsigned long atualMillis = millis();
+  if (atualMillis - anteriorMillis >= intervalo)
+  {
+    anteriorMillis = atualMillis;
 
-  // Defina seu tópico e sua mensagem aqui:
-  String topico = "teste/status";
-  String mensagem = "Aluna Maria Fernanda conectado!";
+    Serial.println("Enviando teste de conexão...");
 
-  // Envia a mensagem para o tópico definido
-  client.publish(topico.c_str(), mensagem.c_str());
+    // Defina seu tópico e sua mensagem aqui:
+    String topico = "teste/status";
+    String mensagemEnvio = "Aluna Maria Fernanda conectada!";
 
-  Serial.println("Mensagem enviada! Aguardando 15 segundos...");
-  delay(15000); // Espera 15 segundos para não sobrecarregar o servidor
+    // Envia a mensagem para o tópico definido
+    client.publish(topico.c_str(), mensagemEnvio.c_str());
+    Serial.println("Mensagem enviada!");
+  }
 }
