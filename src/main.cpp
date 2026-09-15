@@ -1,71 +1,242 @@
+// DESAFIO 1 DO MÓDULO
+// #include <Arduino.h>
+
+// // Definição dos pinos
+// const int pinoBotao = 13;
+// const int pinoRele = 26;
+
+// // Variáveis de estado
+// bool estadoRele = false;
+// int estadoBotaoAtual;
+// // HIGH porque usamos o resistor interno pull-up
+// int estadoBotaoAnterior = HIGH;
+
+// unsigned long tempoFisico = 0;
+
+// void setup()
+// {
+//   Serial.begin(115200);
+
+//   pinMode(pinoBotao, INPUT_PULLUP);
+//   pinMode(pinoRele, OUTPUT);
+
+//   // Garante que o rele inicie desligado
+//   digitalWrite(pinoRele, LOW);
+
+//   Serial.print("Sistema iniciado, Rele DESLIGADO");
+// }
+
+// void loop()
+// {
+//   // Lê o estado do botão
+//   int leitura = digitalRead(pinoBotao);
+
+//   // Se o botão realmente mudou em relação á última leitura confirmada
+//   if (leitura != estadoBotaoAtual)
+//   {
+//     estadoBotaoAtual = leitura;
+
+//     // Só altera o rele quando o botão é pressionado (vai para o LOW)
+//     if (estadoBotaoAtual == LOW)
+//     {
+//       estadoRele = !estadoRele; // Inverte o estado do rele
+//       digitalWrite(pinoRele, estadoRele ? HIGH : LOW);
+
+//       // Exibir o status no Monitor Serial
+//       if (estadoRele)
+//       {
+//         Serial.println("Rele Ligado");
+//         tempoFisico = millis();
+//       }
+//       else
+//       {
+//         Serial.println("Rele Desligado");
+//       }
+//     }
+//   }
+
+//   if (estadoRele && (millis() - tempoFisico >= 10000))
+//   {
+//     estadoRele = false;
+//     digitalWrite(pinoRele, LOW);
+//     Serial.println("Rele Desligado Automaticamente");
+//   }
+// }
+
+// DESAFIO CARGA 1
+// #include <Arduino.h>
+
+// // Definição dos pinos (Alinhado com o ESP32 do projeto)
+// const int pinoBotao = 13;
+// const int pinoRele = 26;
+
+// // Configuração do Hardware do Relé (Suporte Active-LOW - Desafio Anterior)
+// const int RELE_LIGADO = LOW;     // Módulos Active-LOW ligam em 0V
+// const int RELE_DESLIGADO = HIGH; // Módulos Active-LOW desligam em VCC
+
+// // Variáveis de estado e controle
+// bool estadoRele = false;
+// int estadoBotaoAnterior = HIGH; // Resistor interno PULL-UP inicia em HIGH
+
+// // Variáveis para Debounce por Software (Essencial para Validação de Bancada)
+// unsigned long ultimoTempoDebounce = 0;
+// const unsigned long tempoDebounce = 50; // 50 milissegundos para estabilizar o botão
+
+// void setup()
+// {
+//   // Inicialização do Monitor Serial na velocidade especificada
+//   Serial.begin(1152000);
+
+//   // Configuração dos pinos conforme diretrizes de segurança MSEP
+//   pinMode(pinoBotao, INPUT_PULLUP);
+//   pinMode(pinoRele, OUTPUT);
+
+//   // Garante isolamento inicial: Relé em repouso (Desligado)
+//   digitalWrite(pinoRele, RELE_DESLIGADO);
+
+//   Serial.println("==================================================");
+//   Serial.println("MSEP - Sistema de Automacao de Cargas com ESP32");
+//   Serial.println("Status: Inicializado. Rele em REPOUSO.");
+//   Serial.println("Sinalizacao: LED Vermelho (NC) ACESO | LED Verde (NO) APAGADO");
+//   Serial.println("==================================================");
+// }
+
+// void loop()
+// {
+//   // Leitura imediata do pino do botão
+//   int leituraAtual = digitalRead(pinoBotao);
+
+//   // Verifica se houve mudança de estado físico no botão
+//   if (leituraAtual != estadoBotaoAnterior)
+//   {
+//     ultimoTempoDebounce = millis(); // Reinicia o cronômetro do debounce
+//   }
+
+//   // Se o estado se manteve estável por mais tempo que o 'tempoDebounce'
+//   if ((millis() - ultimoTempoDebounce) > tempoDebounce)
+//   {
+
+//     // Verifica se a transição foi de solto para PRESSIONADO (Borda de descida -> LOW)
+//     if (leituraAtual == LOW && estadoRele == false)
+//     {
+
+//       // Altera o estado lógico interno
+//       estadoRele = true;
+
+//       // Comuta fisicamente o Relé para a posição de Operação
+//       digitalWrite(pinoRele, RELE_LIGADO);
+
+//       Serial.println("[ALERTA] Botao Pressionado. Rele ATIVADO!");
+//       Serial.println("Sinalizacao: LED Verde (NO) ACESO | LED Vermelho (NC) APAGADO");
+
+//       // --- TEMPORIZADOR DE SEGURANÇA INDUSTRIAL (MANTIDO COM DELAY) ---
+//       delay(10000); // Retém a carga ativa por exatamente 10 segundos
+
+//       // Força o desligamento automático após o tempo limite
+//       estadoRele = false;
+//       digitalWrite(pinoRele, RELE_DESLIGADO);
+
+//       Serial.println("[SEGURANCA] Tempo limite atingido. Rele DESLIGADO automaticamente.");
+//       Serial.println("Sinalizacao: LED Vermelho (NC) RETORNOU AO STANDBY.");
+//       Serial.println("==================================================");
+//     }
+//   }
+
+//   // Atualiza o histórico do botão para o próximo ciclo do loop
+//   estadoBotaoAnterior = leituraAtual;
+// }
+
+// DESAFIO CARGA 2
 #include <Arduino.h>
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
-#include <DHT.h>
 
-#define DHTPIN 15
-#define DHTTYPE DHT22
-DHT dht(DHTPIN, DHTTYPE);
+// ============================================================================
+// CONFIGURAÇÃO DE HARDWARE (MSEP - DIRETRIZES DE BANCADA)
+// ============================================================================
+const int pinoBotao = 13; // Entrada do botão de comando (com Resistor Pull-up)
+const int pinoRele = 26;  // Saída de controle do Relé (Isolamento Galvânico)
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+// Configuração para módulos relé industriais comuns (Active-LOW)
+// (Caso use um relé Active-HIGH, basta inverter HIGH e LOW nestas duas constantes)
+const int RELE_LIGADO = LOW;
+const int RELE_DESLIGADO = HIGH;
+
+// ============================================================================
+// VARIÁVEIS DE ESTADO E DEBOUNCE (FILTRAGEM DE BANCADA)
+// ============================================================================
+bool estadoRele = false;        // Controla o estado lógico da bobina do relé
+int estadoBotaoAnterior = HIGH; // Histórico do botão para detectar cliques
+int ultimoEstadoEstavel = HIGH; // Estado filtrado pós-debounce
+
+unsigned long ultimoTempoDebounce = 0;  // Armazena o tempo do último ruído mecânico
+const unsigned long tempoDebounce = 50; // Tempo de filtro (50ms)
 
 void setup()
 {
-  Serial.begin(115200);
-  dht.begin();
-  lcd.init();
-  lcd.backlight();
+  // Inicialização do Monitor Serial para diagnósticos da planta
+  Serial.begin(1152000);
 
-  lcd.setCursor(0, 0);
-  lcd.print("Iniciando...");
-  delay(2000);
-  lcd.clear();
+  // Configuração elétrica dos pinos
+  pinMode(pinoBotao, INPUT_PULLUP);
+  pinMode(pinoRele, OUTPUT);
+
+  // ESTADO INICIAL SEGURO: Garante que o relé inicie DESLIGADO (Em repouso)
+  digitalWrite(pinoRele, RELE_DESLIGADO);
+
+  Serial.println("==================================================");
+  Serial.println("     SENAI-SP - INTERNET DAS COISAS (75h)         ");
+  Serial.println("   DESAFIO 2: SISTEMA INDUSTRIAL DE SINALIZACAO   ");
+  Serial.println("==================================================");
+  Serial.println("[ESTADO INICIAL] Exaustor Industrial: DESLIGADO");
+  Serial.println("[SINALIZACAO HW] LED Vermelho (NC) ACESO [Standby]");
+  Serial.println("[SINALIZACAO HW] LED Verde (NO) APAGADO");
+  Serial.println("==================================================");
 }
 
 void loop()
 {
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
+  // 1. LEITURA DO BOTÃO DE COMANDO
+  int leituraAtual = digitalRead(pinoBotao);
 
-  if (isnan(h) || isnan(t))
+  // 2. FILTRO DE DEBOUNCE (Evita acionamentos falsos gerados pelo botão)
+  if (leituraAtual != estadoBotaoAnterior)
   {
-    lcd.setCursor(0, 0);
-    lcd.print("Erro no sensor ");
-    return;
+    ultimoTempoDebounce = millis(); // Reinicia temporizador se houver oscilação
   }
 
-  // ALERTA: Se a temperatura passar de 30°C
-  if (t > 30.0)
+  // Verifica se o sinal do botão estabilizou
+  if ((millis() - ultimoTempoDebounce) > tempoDebounce)
   {
-    lcd.setCursor(0, 0);
-    lcd.print("   !!ALERTA!!   ");
-    lcd.setCursor(0, 1);
-    lcd.print("Temp alta: ");
-    lcd.print(t, 1);
-    lcd.print("C ");
 
-    // Faz a luz de fundo piscar
-    lcd.noBacklight();
-    delay(500);
-    lcd.backlight();
-    delay(500);
+    // Detecta o momento exato em que o botão foi pressionado (borda de descida)
+    if (leituraAtual == LOW && ultimoEstadoEstavel == HIGH)
+    {
+
+      // Inverte o estado lógico da bobina do relé
+      estadoRele = !estadoRele;
+
+      // Comuta fisicamente o Relé
+      digitalWrite(pinoRele, estadoRele ? RELE_LIGADO : RELE_DESLIGADO);
+
+      // 3. FEEDBACK NO MONITOR SERIAL (Reflete fielmente a comutação física)
+      if (estadoRele)
+      {
+        Serial.println("\n[COMANDO] Operador ligou a maquina.");
+        Serial.println("[STATUS]  Exaustor Industrial: EM OPERACAO");
+        Serial.println("[FÍSICA]   Contato COM -> NO: LED Verde [ACESO] | LED Vermelho [APAGADO]");
+      }
+      else
+      {
+        Serial.println("\n[COMANDO] Operador desligou a maquina.");
+        Serial.println("[STATUS]  Exaustor Industrial: EM STANDBY");
+        Serial.println("[FÍSICA]   Contato COM -> NC: LED Vermelho [ACESO] | LED Verde [APAGADO]");
+      }
+      Serial.println("--------------------------------------------------");
+    }
+
+    // Atualiza o estado estável validado
+    ultimoEstadoEstavel = leituraAtual;
   }
-  else
-  {
-    // Funcionamento Normal (Garante que a luz fique acesa)
-    lcd.backlight();
 
-    lcd.setCursor(0, 0);
-    lcd.print("Temp: ");
-    lcd.print(t, 1);
-    lcd.print((char)223); // Símbolo de grau °
-    lcd.print("C    ");
-
-    lcd.setCursor(0, 1);
-    lcd.print("Umid: ");
-    lcd.print(h, 1);
-    lcd.print(" %   ");
-
-    delay(2000);
-  }
+  // Atualiza o histórico para o próximo ciclo do loop
+  estadoBotaoAnterior = leituraAtual;
 }
