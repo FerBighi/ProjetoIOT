@@ -1,38 +1,137 @@
+// 3:
+//  #include <Arduino.h>
+//  #include <WiFi.h>
+//  #include <HTTPClient.h>
+//  #include <ArduinoJson.h>
+
+// const char *ssid = "Irineu";
+// const char *password = "12345678";
+
+// // API ViaCEP em HTTP direto (Porta 80 - sem redirecionamento 308/301)
+// const char *serverUrlGET = "http://viacep.com.br/ws/17704602/json/";
+
+// void setup()
+// {
+//   Serial.begin(115200);
+//   delay(1000);
+
+//   Serial.println("\n=== ESP32 WI-FI - CONSULTA DE CEP REAL (HTTP) ===");
+
+//   WiFi.mode(WIFI_STA);
+
+//   Serial.print("MAC Address do ESP32: ");
+//   Serial.println(WiFi.macAddress());
+
+//   Serial.print("Conectando ao Wi-fi: ");
+//   Serial.println(ssid);
+//   WiFi.begin(ssid, password);
+
+//   while (WiFi.status() != WL_CONNECTED)
+//   {
+//     delay(500);
+//     Serial.print(".");
+//   }
+
+//   Serial.println("\n[Wi-fi] Conectado com sucesso!");
+//   Serial.print("[Wi-fi] IP Atribuído: ");
+//   Serial.println(WiFi.localIP());
+// }
+
+// void loop()
+// {
+//   if (WiFi.status() == WL_CONNECTED)
+//   {
+//     HTTPClient http;
+
+//     Serial.println("\n----------------------------------");
+//     Serial.print("[HTTP GET] Consultando ViaCEP: ");
+//     Serial.println(serverUrlGET);
+
+//     http.begin(serverUrlGET);
+//     int httpCode = http.GET();
+
+//     if (httpCode > 0)
+//     {
+//       Serial.printf("[HTTP GET] Código de Resposta do Servidor: %d\n", httpCode);
+
+//       if (httpCode == HTTP_CODE_OK)
+//       {
+//         String payload = http.getString();
+//         Serial.println("[HTTP GET] Resposta JSON recebida:");
+//         Serial.println(payload);
+
+//         JsonDocument doc;
+//         DeserializationError error = deserializeJson(doc, payload);
+
+//         if (!error)
+//         {
+//           const char *cep = doc["cep"];
+//           const char *logradouro = doc["logradouro"];
+//           const char *bairro = doc["bairro"];
+//           const char *cidade = doc["localidade"];
+//           const char *uf = doc["uf"];
+//           const char *ddd = doc["ddd"];
+
+//           Serial.println("\n-------------------------------------------");
+//           Serial.println(" 📌 ENDEREÇO LOCALIZADO REAL (ViaCEP)");
+//           Serial.println("-------------------------------------------");
+//           Serial.printf(" CEP        : %s\n", cep);
+//           Serial.printf(" Logradouro : %s\n", logradouro);
+//           Serial.printf(" Bairro     : %s\n", bairro);
+//           Serial.printf(" Cidade/UF  : %s/%s\n", cidade, uf);
+//           Serial.printf(" DDD        : %s\n", ddd);
+//           Serial.println("-------------------------------------------");
+//         }
+//         else
+//         {
+//           Serial.print("[JSON Error] Falha no parsing: ");
+//           Serial.println(error.c_str());
+//         }
+//       }
+//     }
+//     else
+//     {
+//       Serial.printf("[HTTP GET] Falha. Erro: %s\n", http.errorToString(httpCode).c_str());
+//     }
+
+//     http.end();
+//   }
+
+//   delay(15000);
+// }
+
+// 4:
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
 const char *ssid = "Irineu";
 const char *password = "12345678";
 
-// API ViaCEP em HTTP direto (Porta 80 - sem redirecionamento 308/301)
-const char *serverUrlGET = "http://viacep.com.br/ws/17704602/json/";
+// URL HTTPS da AwesomeAPI
+const char *serverUrlHTTPS = "https://awesomeapi.com.br";
 
 void setup()
 {
   Serial.begin(115200);
   delay(1000);
 
-  Serial.println("\n=== ESP32 WI-FI - CONSULTA DE CEP REAL (HTTP) ===");
+  Serial.println("\n=== ESP32 WI-FI - COTAÇÃO DO DÓLAR REAL (HTTPS) ===");
 
   WiFi.mode(WIFI_STA);
-
-  Serial.print("MAC Address do ESP32: ");
-  Serial.println(WiFi.macAddress());
-
-  Serial.print("Conectando ao Wi-fi: ");
-  Serial.println(ssid);
   WiFi.begin(ssid, password);
 
+  Serial.print("Conectando ao Wi-Fi");
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println("\n[Wi-fi] Conectado com sucesso!");
-  Serial.print("[Wi-fi] IP Atribuído: ");
+  Serial.println("\n[Wi-Fi] Conectado!");
+  Serial.print("[Wi-Fi] IP: ");
   Serial.println(WiFi.localIP());
 }
 
@@ -40,23 +139,29 @@ void loop()
 {
   if (WiFi.status() == WL_CONNECTED)
   {
+    // 1. Criar o cliente seguro SSL/TLS
+    WiFiClientSecure client;
+    client.setInsecure(); // Ignora a verificação estrita de certificado SSL no ESP32
+
     HTTPClient http;
 
-    Serial.println("\n----------------------------------");
-    Serial.print("[HTTP GET] Consultando ViaCEP: ");
-    Serial.println(serverUrlGET);
+    Serial.println("\n--------------------------------------------------");
+    Serial.print("[HTTPS GET] Consultando AwesomeAPI: ");
+    Serial.println(serverUrlHTTPS);
 
-    http.begin(serverUrlGET);
+    // 2. Inicializar a conexão passando o cliente seguro
+    http.begin(client, serverUrlHTTPS);
+
     int httpCode = http.GET();
 
     if (httpCode > 0)
     {
-      Serial.printf("[HTTP GET] Código de Resposta do Servidor: %d\n", httpCode);
+      Serial.printf("[HTTPS GET] Código de Resposta do Servidor: %d\n", httpCode);
 
       if (httpCode == HTTP_CODE_OK)
       {
         String payload = http.getString();
-        Serial.println("[HTTP GET] Resposta JSON recebida:");
+        Serial.println("[HTTPS GET] Resposta JSON recebida:");
         Serial.println(payload);
 
         JsonDocument doc;
@@ -64,22 +169,26 @@ void loop()
 
         if (!error)
         {
-          const char *cep = doc["cep"];
-          const char *logradouro = doc["logradouro"];
-          const char *bairro = doc["bairro"];
-          const char *cidade = doc["localidade"];
-          const char *uf = doc["uf"];
-          const char *ddd = doc["ddd"];
+          JsonObject usd = doc["USDBRL"];
 
-          Serial.println("\n-------------------------------------------");
-          Serial.println(" 📌 ENDEREÇO LOCALIZADO REAL (ViaCEP)");
-          Serial.println("-------------------------------------------");
-          Serial.printf(" CEP        : %s\n", cep);
-          Serial.printf(" Logradouro : %s\n", logradouro);
-          Serial.printf(" Bairro     : %s\n", bairro);
-          Serial.printf(" Cidade/UF  : %s/%s\n", cidade, uf);
-          Serial.printf(" DDD        : %s\n", ddd);
-          Serial.println("-------------------------------------------");
+          const char *nomeMoeda = usd["name"];
+          const char *valorCompra = usd["bid"];
+          const char *valorVenda = usd["ask"];
+          const char *maximaDia = usd["high"];
+          const char *minimaDia = usd["low"];
+          const char *variacao = usd["pctChange"];
+          const char *dataHora = usd["create_date"];
+
+          Serial.println("\n--------------------------------------------------");
+          Serial.printf(" 💵 COTAÇÃO EM TEMPO REAL: %s\n", nomeMoeda);
+          Serial.println("--------------------------------------------------");
+          Serial.printf(" Valor de Compra (Bid) : R$ %s\n", valorCompra);
+          Serial.printf(" Valor de Venda (Ask)  : R$ %s\n", valorVenda);
+          Serial.printf(" Máxima do Dia (High)  : R$ %s\n", maximaDia);
+          Serial.printf(" Mínima do Dia (Low)   : R$ %s\n", minimaDia);
+          Serial.printf(" Variação do Dia       : %s%%\n", variacao);
+          Serial.printf(" Última Atualização    : %s\n", dataHora);
+          Serial.println("--------------------------------------------------");
         }
         else
         {
@@ -90,7 +199,7 @@ void loop()
     }
     else
     {
-      Serial.printf("[HTTP GET] Falha. Erro: %s\n", http.errorToString(httpCode).c_str());
+      Serial.printf("[HTTPS GET] Falha na requisição. Erro: %s\n", http.errorToString(httpCode).c_str());
     }
 
     http.end();
