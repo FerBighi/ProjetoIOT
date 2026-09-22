@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <Wifi.h>
+#include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
@@ -7,7 +7,7 @@ const char *ssid = "Irineu";
 const char *password = "12345678";
 
 // API ViaCEP em HTTP direto (Porta 80 - sem redirecionamento 308/301)
-const char *serverUrlGET = "http://viacep.com.br/ws/01001000/json/";
+const char *serverUrlGET = "http://viacep.com.br";
 
 void setup()
 {
@@ -16,16 +16,16 @@ void setup()
 
   Serial.println("\n=== ESP32 WI-FI - CONSULTA DE CEP REAL (HTTP) ===");
 
-  Wifi.mode(WIFI_STA);
+  WiFi.mode(WIFI_STA);
 
   Serial.print("MAC Address do ESP32: ");
-  Serial.println(Wifi.macAdress());
+  Serial.println(WiFi.macAddress());
 
-  Serial.print("Conectando ao Wi-fi: ")
-      Serial.println(ssid);
-  Wifi.begin(ssid, password);
+  Serial.print("Conectando ao Wi-fi: ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
 
-  while (Wifi.status() != WL_CONNECTED)
+  while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
@@ -33,12 +33,12 @@ void setup()
 
   Serial.println("\n[Wi-fi] Conectado com sucesso!");
   Serial.print("[Wi-fi] IP Atribuído: ");
-  Serial.println(Wifi.localIP());
+  Serial.println(WiFi.localIP());
 }
 
 void loop()
 {
-  if (Wifi.status() == WL_CONNECTED)
+  if (WiFi.status() == WL_CONNECTED)
   {
     HTTPClient http;
 
@@ -46,7 +46,7 @@ void loop()
     Serial.print("[HTTP GET] Consultando ViaCEP: ");
     Serial.println(serverUrlGET);
 
-    http.begin(serverUriGET);
+    http.begin(serverUrlGET);
     int httpCode = http.GET();
 
     if (httpCode > 0)
