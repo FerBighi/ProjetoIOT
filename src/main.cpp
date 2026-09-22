@@ -101,25 +101,229 @@
 // }
 
 // 4:
+// #include <Arduino.h>
+// #include <WiFi.h>
+// #include <WiFiClientSecure.h>
+// #include <HTTPClient.h>
+// #include <ArduinoJson.h>
+
+// const char *ssid = "Irineu";
+// const char *password = "12345678";
+
+// // URL HTTPS da AwesomeAPI
+// const char *serverUrlHTTPS = "https://economia.awesomeapi.com.br/json/last/USD-BRL";
+
+// void setup()
+// {
+//   Serial.begin(115200);
+//   delay(1000);
+
+//   Serial.println("\n=== ESP32 WI-FI - COTAÇÃO DO DÓLAR REAL (HTTPS) ===");
+
+//   WiFi.mode(WIFI_STA);
+//   WiFi.begin(ssid, password);
+
+//   Serial.print("Conectando ao Wi-Fi");
+//   while (WiFi.status() != WL_CONNECTED)
+//   {
+//     delay(500);
+//     Serial.print(".");
+//   }
+
+//   Serial.println("\n[Wi-Fi] Conectado!");
+//   Serial.print("[Wi-Fi] IP: ");
+//   Serial.println(WiFi.localIP());
+// }
+
+// void loop()
+// {
+//   if (WiFi.status() == WL_CONNECTED)
+//   {
+//     // 1. Criar o cliente seguro SSL/TLS
+//     WiFiClientSecure client;
+//     client.setInsecure(); // Ignora a verificação estrita de certificado SSL no ESP32
+
+//     HTTPClient http;
+
+//     Serial.println("\n--------------------------------------------------");
+//     Serial.print("[HTTPS GET] Consultando AwesomeAPI: ");
+//     Serial.println(serverUrlHTTPS);
+
+//     // 2. Inicializar a conexão passando o cliente seguro
+//     http.begin(client, serverUrlHTTPS);
+
+//     int httpCode = http.GET();
+
+//     if (httpCode > 0)
+//     {
+//       Serial.printf("[HTTPS GET] Código de Resposta do Servidor: %d\n", httpCode);
+
+//       if (httpCode == HTTP_CODE_OK)
+//       {
+//         String payload = http.getString();
+//         Serial.println("[HTTPS GET] Resposta JSON recebida:");
+//         Serial.println(payload);
+
+//         JsonDocument doc;
+//         DeserializationError error = deserializeJson(doc, payload);
+
+//         if (!error)
+//         {
+//           JsonObject usd = doc["USDBRL"];
+
+//           const char *nomeMoeda = usd["name"];
+//           const char *valorCompra = usd["bid"];
+//           const char *valorVenda = usd["ask"];
+//           const char *maximaDia = usd["high"];
+//           const char *minimaDia = usd["low"];
+//           const char *variacao = usd["pctChange"];
+//           const char *dataHora = usd["create_date"];
+
+//           Serial.println("\n--------------------------------------------------");
+//           Serial.printf(" 💵 COTAÇÃO EM TEMPO REAL: %s\n", nomeMoeda);
+//           Serial.println("--------------------------------------------------");
+//           Serial.printf(" Valor de Compra (Bid) : R$ %s\n", valorCompra);
+//           Serial.printf(" Valor de Venda (Ask)  : R$ %s\n", valorVenda);
+//           Serial.printf(" Máxima do Dia (High)  : R$ %s\n", maximaDia);
+//           Serial.printf(" Mínima do Dia (Low)   : R$ %s\n", minimaDia);
+//           Serial.printf(" Variação do Dia       : %s%%\n", variacao);
+//           Serial.printf(" Última Atualização    : %s\n", dataHora);
+//           Serial.println("--------------------------------------------------");
+//         }
+//         else
+//         {
+//           Serial.print("[JSON Error] Falha no parsing: ");
+//           Serial.println(error.c_str());
+//         }
+//       }
+//     }
+//     else
+//     {
+//       Serial.printf("[HTTPS GET] Falha na requisição. Erro: %s\n", http.errorToString(httpCode).c_str());
+//     }
+
+//     http.end();
+//   }
+
+//   delay(15000);
+// }
+
+// 5:
+// #include <Arduino.h>
+// #include <WiFi.h>
+// #include <WiFiClientSecure.h>
+// #include <HTTPClient.h>
+// #include <ArduinoJson.h>
+
+// const char *ssid = "Irineu";
+// const char *password = "12345678";
+// const char *serverUrlPOST = "http://jsonplaceholder.typicode.com/posts";
+
+// void setup()
+// {
+//   Serial.begin(115200);
+//   delay(1000);
+
+//   Serial.println("\n=== INICIALIZANDO ESP32 WI-FI E HTTP POST ===");
+
+//   WiFi.mode(WIFI_STA);
+//   WiFi.begin(ssid, password);
+
+//   Serial.print("Conectando ao Wi-Fi");
+//   while (WiFi.status() != WL_CONNECTED)
+//   {
+//     delay(500);
+//     Serial.print(".");
+//   }
+
+//   Serial.println("\n[Wi-Fi] Conectado!");
+//   Serial.print("[Wi-Fi] IP: ");
+//   Serial.println(WiFi.localIP());
+// }
+
+// void loop()
+// {
+//   if (WiFi.status() == WL_CONNECTED)
+//   {
+//     Serial.println("\n----------------------------------------");
+//     Serial.print("[HTTP POST] Enviando dados para: ");
+//     Serial.println(serverUrlPOST);
+
+//     JsonDocument doc;
+//     doc["dispositivo"] = "ESP32_Sensor_01";
+//     doc["mac"] = WiFi.macAddress();
+//     doc["temperatura"] = 27.4;
+//     doc["rele-ativo"] = true;
+//     doc["userId"] = "1";
+
+//     String jsonPayload;
+//     serializeJson(doc, jsonPayload);
+
+//     Serial.println("[HTTP POST] Payload JSON gerado:");
+//     Serial.println(jsonPayload);
+
+//     HTTPClient http;
+//     http.begin(serverUrlPOST);
+//     http.addHeader("Content-Type", "application/json");
+
+//     int httpCode = http.POST(jsonPayload);
+
+//     if (httpCode > 0)
+//     {
+//       Serial.printf("[HTTP POST] Código de Resposta do Servidor: %d\n", httpCode);
+
+//       if (httpCode == HTTP_CODE_CREATED || httpCode == HTTP_CODE_OK)
+//       {
+//         String response = http.getString();
+//         Serial.println("[HTTP POST] Resposta de Confirmação do Servidor:");
+//         Serial.println(response);
+//       }
+//     }
+//     else
+//     {
+//       Serial.printf("[HTTP POST] Falha no envio. Erro: %s\n", http.errorToString(httpCode).c_str());
+//     }
+
+//     http.end();
+//   }
+//   else
+//   {
+//     Serial.println("[Wi-Fi Error] Conexão Wi-Fi desconectada!");
+//   }
+
+//   delay(20000);
+// }
+
+// DESAFIO 6:
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <DHT.h>
 
+// Configurações do Wi-Fi
 const char *ssid = "Irineu";
 const char *password = "12345678";
 
-// URL HTTPS da AwesomeAPI
-const char *serverUrlHTTPS = "https://awesomeapi.com.br";
+// URL da API REST de Clima (Exemplo: Presidente Prudente)
+const char *serverUrlGET = "http://wttr.in";
+
+// Configurações do Sensor DHT22
+#define DHTPIN 4
+#define DHTTYPE DHT22
+DHT dht(DHTPIN, DHTTYPE);
 
 void setup()
 {
   Serial.begin(115200);
   delay(1000);
 
-  Serial.println("\n=== ESP32 WI-FI - COTAÇÃO DO DÓLAR REAL (HTTPS) ===");
+  Serial.println("\n=== DESAFIO 1: ESTAÇÃO METEOROLÓGICA HÍBRIDA ===");
 
+  // Inicializa o sensor DHT22
+  dht.begin();
+
+  // Conexão Wi-Fi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
@@ -131,81 +335,98 @@ void setup()
   }
 
   Serial.println("\n[Wi-Fi] Conectado!");
-  Serial.print("[Wi-Fi] IP: ");
+  Serial.print("[Wi-Fi] Endereço IP: ");
   Serial.println(WiFi.localIP());
 }
 
 void loop()
 {
+  // 1. Leitura Local (Sensor DHT22)
+  float tempLocal = dht.readTemperature();
+  float umidLocal = dht.readHumidity();
+
+  // Variáveis para armazenar os dados da API externa
+  String tempExterna = "N/A";
+  String sensacaoTermica = "N/A";
+  String umidExterna = "N/A";
+  String ventoVelocidade = "N/A";
+  String condicaoTempo = "N/A";
+
+  // 2. Requisição HTTP GET (Clima Externo via API REST)
   if (WiFi.status() == WL_CONNECTED)
   {
-    // 1. Criar o cliente seguro SSL/TLS
-    WiFiClientSecure client;
-    client.setInsecure(); // Ignora a verificação estrita de certificado SSL no ESP32
-
     HTTPClient http;
-
-    Serial.println("\n--------------------------------------------------");
-    Serial.print("[HTTPS GET] Consultando AwesomeAPI: ");
-    Serial.println(serverUrlHTTPS);
-
-    // 2. Inicializar a conexão passando o cliente seguro
-    http.begin(client, serverUrlHTTPS);
+    http.begin(serverUrlGET);
 
     int httpCode = http.GET();
 
-    if (httpCode > 0)
+    if (httpCode == HTTP_CODE_OK)
     {
-      Serial.printf("[HTTPS GET] Código de Resposta do Servidor: %d\n", httpCode);
+      String payload = http.getString();
 
-      if (httpCode == HTTP_CODE_OK)
+      // Aloca memória dinamicamente para o JSON grande do wttr.in
+      JsonDocument doc;
+      DeserializationError error = deserializeJson(doc, payload);
+
+      if (!error)
       {
-        String payload = http.getString();
-        Serial.println("[HTTPS GET] Resposta JSON recebida:");
-        Serial.println(payload);
+        // Navegação na estrutura JSON específica do wttr.in
+        JsonObject current_condition = doc["current_condition"][0];
 
-        JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, payload);
+        tempExterna = current_condition["temp_C"].as<String>();
+        sensacaoTermica = current_condition["FeelsLikeC"].as<String>();
+        umidExterna = current_condition["humidity"].as<String>();
+        ventoVelocidade = current_condition["windspeedKmph"].as<String>();
 
-        if (!error)
-        {
-          JsonObject usd = doc["USDBRL"];
-
-          const char *nomeMoeda = usd["name"];
-          const char *valorCompra = usd["bid"];
-          const char *valorVenda = usd["ask"];
-          const char *maximaDia = usd["high"];
-          const char *minimaDia = usd["low"];
-          const char *variacao = usd["pctChange"];
-          const char *dataHora = usd["create_date"];
-
-          Serial.println("\n--------------------------------------------------");
-          Serial.printf(" 💵 COTAÇÃO EM TEMPO REAL: %s\n", nomeMoeda);
-          Serial.println("--------------------------------------------------");
-          Serial.printf(" Valor de Compra (Bid) : R$ %s\n", valorCompra);
-          Serial.printf(" Valor de Venda (Ask)  : R$ %s\n", valorVenda);
-          Serial.printf(" Máxima do Dia (High)  : R$ %s\n", maximaDia);
-          Serial.printf(" Mínima do Dia (Low)   : R$ %s\n", minimaDia);
-          Serial.printf(" Variação do Dia       : %s%%\n", variacao);
-          Serial.printf(" Última Atualização    : %s\n", dataHora);
-          Serial.println("--------------------------------------------------");
-        }
-        else
-        {
-          Serial.print("[JSON Error] Falha no parsing: ");
-          Serial.println(error.c_str());
-        }
+        // A condição traduzida fica dentro de lang_pt
+        condicaoTempo = current_condition["lang_pt"][0]["value"].as<String>();
+      }
+      else
+      {
+        Serial.print("[JSON] Falha ao desserializar: ");
+        Serial.println(error.c_str());
       }
     }
     else
     {
-      Serial.printf("[HTTPS GET] Falha na requisição. Erro: %s\n", http.errorToString(httpCode).c_str());
+      Serial.printf("[HTTP GET] Falha na requisição. Erro: %s\n", http.errorToString(httpCode).c_str());
     }
-
     http.end();
   }
+  else
+  {
+    Serial.println("[Wi-Fi Error] Conexão Wi-Fi perdida!");
+  }
 
-  delay(15000);
+  // 3. Exibição da Consolidação Comparativa no Serial Monitor
+  Serial.println("\n=======================================================");
+  Serial.println("📊 RELATÓRIO CONSOLIDADO - ESTAÇÃO METEOROLÓGICA HÍBRIDA");
+  Serial.println("=======================================================");
+
+  // Bloco Externo (API)
+  Serial.println("🌍 CLIMA EXTERNO DA CIDADE (API REST):");
+  Serial.printf("   Condição: %s\n", condicaoTempo.c_str());
+  Serial.printf("   Temperatura Externa : %s °C\n", tempExterna.c_str());
+  Serial.printf("   Sensação Térmica    : %s °C\n", sensacaoTermica.c_str());
+  Serial.printf("   Umidade Externa     : %s %%\n", umidExterna.c_str());
+  Serial.printf("   Velocidade do Vento : %s km/h\n", ventoVelocidade.c_str());
+  Serial.println("-------------------------------------------------------");
+
+  // Bloco Local (DHT22)
+  Serial.println("🏠 CLIMA LOCAL DA SALA/ESTUFA (DHT22):");
+  if (isnan(tempLocal) || isnan(umidLocal))
+  {
+    Serial.println("   [Erro] Falha ao ler dados do sensor DHT22!");
+  }
+  else
+  {
+    Serial.printf("   Temperatura Local   : %.1f °C\n", tempLocal);
+    Serial.printf("   Umidade Local       : %.1f %%\n", umidLocal);
+  }
+  Serial.println("=======================================================");
+
+  // Intervalo de atualização solicitado indiretamente por boas práticas da API
+  delay(30000);
 }
 
 // // DESAFIO 1 DO MÓDULO
