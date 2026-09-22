@@ -7,7 +7,7 @@ const char *ssid = "Irineu";
 const char *password = "12345678";
 
 // API ViaCEP em HTTP direto (Porta 80 - sem redirecionamento 308/301)
-const char *serverUrlGET = "http://viacep.com.br";
+const char *serverUrlGET = "http://viacep.com.br/ws/01001000/json/";
 
 void setup()
 {
