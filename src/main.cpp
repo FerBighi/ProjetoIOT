@@ -1,134 +1,109 @@
-// DESAFIO 6:
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
 
-// Configurações do Wi-Fi
-const char *ssid = "Irineu";
-const char *password = "12345678";
+// Configurações da Rede Wi-Fi
+const char *ssid = "NOME_DA_SUA_REDE_WIFI";
+const char *password = "SENHA_DA_SUA_REDE_WIFI";
 
-// URL da API REST de Clima (Exemplo: Presidente Prudente)
-const char *serverUrlGET = "http://wttr.in";
+// Configuração do Servidor Backend (Substitua pelo IP do seu PC)
+const char *server_url = "http://192.168.x.x:5000/api/telemetria";
 
 // Configurações do Sensor DHT22
-#define DHTPIN 4
-#define DHTTYPE DHT22
+#define DHTPIN 4      // Pino GPIO conectado ao DATA do DHT22
+#define DHTTYPE DHT22 // Tipo do sensor utilizado
 DHT dht(DHTPIN, DHTTYPE);
+
+// Configurações de Identificação do Dispositivo
+const char *dispositivo_id = "ESP32_FABRICA_SETOR_A";
 
 void setup()
 {
   Serial.begin(115200);
-  delay(1000);
-
-  Serial.println("\n=== DESAFIO 1: ESTAÇÃO METEOROLÓGICA HÍBRIDA ===");
-
-  // Inicializa o sensor DHT22
   dht.begin();
 
-  // Conexão Wi-Fi
-  WiFi.mode(WIFI_STA);
+  // Conexão com a rede Wi-Fi
+  Serial.print("Conectando-se a rede Wi-Fi: ");
+  Serial.println(ssid);
   WiFi.begin(ssid, password);
 
-  Serial.print("Conectando ao Wi-Fi");
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println("\n[Wi-Fi] Conectado!");
-  Serial.print("[Wi-Fi] Endereço IP: ");
+  Serial.println("\nWi-Fi Conectado com sucesso!");
+  Serial.print("Endereço IP do ESP32: ");
   Serial.println(WiFi.localIP());
 }
 
 void loop()
 {
-  // 1. Leitura Local (Sensor DHT22)
-  float tempLocal = dht.readTemperature();
-  float umidLocal = dht.readHumidity();
+  // Aguarda 10 segundos entre os envios
+  delay(10000);
 
-  // Variáveis para armazenar os dados da API externa
-  String tempExterna = "N/A";
-  String sensacaoTermica = "N/A";
-  String umidExterna = "N/A";
-  String ventoVelocidade = "N/A";
-  String condicaoTempo = "N/A";
-
-  // 2. Requisição HTTP GET (Clima Externo via API REST)
+  // Verifica se o Wi-Fi continua conectado antes de enviar
   if (WiFi.status() == WL_CONNECTED)
   {
-    HTTPClient http;
-    http.begin(serverUrlGET);
 
-    int httpCode = http.GET();
+    // Leitura dos dados do sensor
+    float temperatura = dht.readTemperature();
+    float umidade = dht.readHumidity();
 
-    if (httpCode == HTTP_CODE_OK)
+    // Valida se as leituras são corretas
+    if (isnan(temperatura) || isnan(umidade))
     {
-      String payload = http.getString();
+      Serial.println("Falha ao ler dados do sensor DHT22!");
+      return;
+    }
 
-      // Aloca memória dinamicamente para o JSON grande do wttr.in
-      JsonDocument doc;
-      DeserializationError error = deserializeJson(doc, payload);
+    // Criação do objeto JSON (Capacidade estimada de 200 bytes)
+    JsonDocument doc;
+    doc["dispositivo_id"] = dispositivo_id;
+    doc["mac_address"] = WiFi.macAddress();
+    doc["temperatura_local"] = temperatura;
+    doc["umidade_local"] = umidade;
 
-      if (!error)
-      {
-        // Navegação na estrutura JSON específica do wttr.in
-        JsonObject current_condition = doc["current_condition"][0];
+    // Serializa o JSON para uma String
+    String json_payload;
+    serializeJson(doc, json_payload);
 
-        tempExterna = current_condition["temp_C"].as<String>();
-        sensacaoTermica = current_condition["FeelsLikeC"].as<String>();
-        umidExterna = current_condition["humidity"].as<String>();
-        ventoVelocidade = current_condition["windspeedKmph"].as<String>();
+    // Inicializa o cliente HTTP
+    HTTPClient http;
+    http.begin(server_url);
+    http.addHeader("Content-Type", "application/json");
 
-        // A condição traduzida fica dentro de lang_pt
-        condicaoTempo = current_condition["lang_pt"][0]["value"].as<String>();
-      }
-      else
-      {
-        Serial.print("[JSON] Falha ao desserializar: ");
-        Serial.println(error.c_str());
-      }
+    Serial.println("\n--- Enviando Requisição HTTP POST ---");
+    Serial.print("Payload: ");
+    Serial.println(json_payload);
+
+    // Envia a requisição POST
+    int http_response_code = http.POST(json_payload);
+
+    // Processa o retorno do servidor
+    if (http_response_code > 0)
+    {
+      Serial.print("Código de Status HTTP: ");
+      Serial.println(http_response_code);
+
+      String resposta_servidor = http.getString();
+      Serial.print("Resposta do Servidor: ");
+      Serial.println(resposta_servidor);
     }
     else
     {
-      Serial.printf("[HTTP GET] Falha na requisição. Erro: %s\n", http.errorToString(httpCode).c_str());
+      Serial.print("Erro na requisição HTTP: ");
+      Serial.println(http.errorToString(http_response_code).c_str());
     }
+
+    // Libera os recursos da requisição
     http.end();
   }
   else
   {
-    Serial.println("[Wi-Fi Error] Conexão Wi-Fi perdida!");
+    Serial.println("Erro: Dispositivo desconectado do Wi-Fi.");
   }
-
-  // 3. Exibição da Consolidação Comparativa no Serial Monitor
-  Serial.println("\n=======================================================");
-  Serial.println("📊 RELATÓRIO CONSOLIDADO - ESTAÇÃO METEOROLÓGICA HÍBRIDA");
-  Serial.println("=======================================================");
-
-  // Bloco Externo (API)
-  Serial.println("🌍 CLIMA EXTERNO DA CIDADE (API REST):");
-  Serial.printf("   Condição: %s\n", condicaoTempo.c_str());
-  Serial.printf("   Temperatura Externa : %s °C\n", tempExterna.c_str());
-  Serial.printf("   Sensação Térmica    : %s °C\n", sensacaoTermica.c_str());
-  Serial.printf("   Umidade Externa     : %s %%\n", umidExterna.c_str());
-  Serial.printf("   Velocidade do Vento : %s km/h\n", ventoVelocidade.c_str());
-  Serial.println("-------------------------------------------------------");
-
-  // Bloco Local (DHT22)
-  Serial.println("🏠 CLIMA LOCAL DA SALA/ESTUFA (DHT22):");
-  if (isnan(tempLocal) || isnan(umidLocal))
-  {
-    Serial.println("   [Erro] Falha ao ler dados do sensor DHT22!");
-  }
-  else
-  {
-    Serial.printf("   Temperatura Local   : %.1f °C\n", tempLocal);
-    Serial.printf("   Umidade Local       : %.1f %%\n", umidLocal);
-  }
-  Serial.println("=======================================================");
-
-  // Intervalo de atualização solicitado indiretamente por boas práticas da API
-  delay(30000);
 }
