@@ -5,8 +5,8 @@
 #include <DHT.h>
 
 // Configurações da Rede Wi-Fi
-const char *ssid = "NOME_DA_SUA_REDE_WIFI";
-const char *password = "SENHA_DA_SUA_REDE_WIFI";
+const char *ssid = "irineu";
+const char *password = "12345678";
 
 // Configuração do Servidor Backend (Substitua pelo IP do seu PC)
 const char *server_url = "http://192.168.x.x:5000/api/telemetria";
