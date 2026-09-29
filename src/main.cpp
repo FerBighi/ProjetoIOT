@@ -1,3 +1,4 @@
+// DESAFIO 6:
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -100,3 +101,34 @@ void loop()
   {
     Serial.println("[Wi-Fi Error] Conexão Wi-Fi perdida!");
   }
+
+  // 3. Exibição da Consolidação Comparativa no Serial Monitor
+  Serial.println("\n=======================================================");
+  Serial.println("📊 RELATÓRIO CONSOLIDADO - ESTAÇÃO METEOROLÓGICA HÍBRIDA");
+  Serial.println("=======================================================");
+
+  // Bloco Externo (API)
+  Serial.println("🌍 CLIMA EXTERNO DA CIDADE (API REST):");
+  Serial.printf("   Condição: %s\n", condicaoTempo.c_str());
+  Serial.printf("   Temperatura Externa : %s °C\n", tempExterna.c_str());
+  Serial.printf("   Sensação Térmica    : %s °C\n", sensacaoTermica.c_str());
+  Serial.printf("   Umidade Externa     : %s %%\n", umidExterna.c_str());
+  Serial.printf("   Velocidade do Vento : %s km/h\n", ventoVelocidade.c_str());
+  Serial.println("-------------------------------------------------------");
+
+  // Bloco Local (DHT22)
+  Serial.println("🏠 CLIMA LOCAL DA SALA/ESTUFA (DHT22):");
+  if (isnan(tempLocal) || isnan(umidLocal))
+  {
+    Serial.println("   [Erro] Falha ao ler dados do sensor DHT22!");
+  }
+  else
+  {
+    Serial.printf("   Temperatura Local   : %.1f °C\n", tempLocal);
+    Serial.printf("   Umidade Local       : %.1f %%\n", umidLocal);
+  }
+  Serial.println("=======================================================");
+
+  // Intervalo de atualização solicitado indiretamente por boas práticas da API
+  delay(30000);
+}
